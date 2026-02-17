@@ -42,7 +42,7 @@ DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "emergency2024")
 SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 # ── App Settings ────────────────────────────────────────────
-APP_TITLE: str = "Emergency Triage Agent"
+APP_TITLE: str = "2020 AI Agent"
 APP_VERSION: str = "1.0.0"
 APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT: int = int(os.getenv("APP_PORT", "8000"))

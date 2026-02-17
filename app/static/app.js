@@ -1,4 +1,4 @@
-/* ─── Emergency Triage — Authorized Personnel Dashboard ───────── */
+/* ─── 2020 AI Agent — Authorized Personnel Dashboard ───────── */
 
 const API = '';
 const sevEmoji = { CRITICAL: '🔴', HIGH: '🟠', MODERATE: '🟡', LOW: '🟢' };

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Hospitals from "./pages/Hospitals";
 import SeverityDistribution from "./pages/SeverityDistribution";
+import VoiceTriage from "./pages/VoiceTriage";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -33,31 +35,36 @@ const App = () => {
   if (!auth) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Login onLogin={handleLogin} />
-        </TooltipProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="crisis-theme">
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Login onLogin={handleLogin} />
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="crisis-theme">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             <Route element={<Layout user={auth} onLogout={handleLogout} />}>
               <Route path="/" element={<Index />} />
               <Route path="/hospitals" element={<Hospitals />} />
               <Route path="/severity" element={<SeverityDistribution />} />
+              <Route path="/voice-triage" element={<VoiceTriage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

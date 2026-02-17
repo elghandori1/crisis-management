@@ -1,10 +1,12 @@
 import { NavLink as RouterNavLink, Outlet } from "react-router-dom";
-import { Activity, Building2, BarChart3, AlertTriangle, LogOut, User } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Activity, Building2, BarChart3, Mic, AlertTriangle, LogOut, User, Sun, Moon } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Live Cases", icon: Activity },
   { to: "/hospitals", label: "Hospitals", icon: Building2 },
   { to: "/severity", label: "Distribution", icon: BarChart3 },
+  { to: "/voice-triage", label: "Voice Triage", icon: Mic },
 ];
 
 interface LayoutProps {
@@ -13,6 +15,8 @@ interface LayoutProps {
 }
 
 const Layout = ({ user, onLogout }: LayoutProps) => {
+  const { theme, setTheme } = useTheme();
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
@@ -23,7 +27,7 @@ const Layout = ({ user, onLogout }: LayoutProps) => {
               <AlertTriangle className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-foreground tracking-tight">EMERGENCY OPS</h1>
+              <h1 className="text-sm font-bold text-foreground tracking-tight">2020 AI AGENT</h1>
               <p className="text-[10px] font-mono text-muted-foreground tracking-widest">MARRAKECH–SAFI</p>
             </div>
           </div>
@@ -44,6 +48,23 @@ const Layout = ({ user, onLogout }: LayoutProps) => {
             </RouterNavLink>
           ))}
         </nav>
+
+        {/* Theme toggle */}
+        <div className="p-3 border-t border-border">
+          <button
+            type="button"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+        </div>
 
         {/* User info + logout */}
         {user && (

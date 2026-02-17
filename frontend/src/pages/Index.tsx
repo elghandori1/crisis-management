@@ -20,7 +20,7 @@ const Index = () => {
     <div className="h-screen flex flex-col">
       {/* Header stats */}
       <div className="border-b border-border bg-card px-6 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <Activity className="w-5 h-5 text-primary" />
             <h1 className="text-lg font-bold text-foreground">Live Emergency Cases</h1>
@@ -28,6 +28,9 @@ const Index = () => {
               {loading ? "..." : cases.length} ACTIVE
             </span>
           </div>
+          <p className="text-[10px] text-muted-foreground max-w-xl text-right">
+            Victims are matched to the <strong className="text-foreground/90">nearest hospital with available capacity and required care</strong> (e.g. cardiology, trauma). If that hospital is full, the next nearest with capacity is suggested.
+          </p>
           <div className="flex items-center gap-4">
             {(["critical", "severe", "moderate", "mild"] as SeverityLevel[]).map((s) => (
               <div key={s} className="flex items-center gap-1.5">
@@ -69,6 +72,7 @@ const Index = () => {
       <CaseDetailModal
         caseData={selectedCase}
         assignedHospital={selectedCase ? hospitals.find((h) => h.name === selectedCase.assignedHospital) ?? null : null}
+        hospitals={hospitals}
         onClose={() => setSelectedCase(null)}
       />
     </div>

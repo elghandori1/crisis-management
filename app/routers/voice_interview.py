@@ -190,6 +190,40 @@ async def generate_speech(body: TTSRequest):
     )
 
 
+@router.post("/tts/stream")
+async def generate_speech_streaming(body: TTSRequest):
+    """
+    Streaming TTS — returns audio chunks as they're generated.
+    Used by the web call interface for minimal latency.
+    Audio starts playing in the browser before the full response is ready.
+    """
+    from fastapi.responses import StreamingResponse
+    from app.services.elevenlabs import text_to_speech_streaming
+
+    if not body.text.strip():
+        raise HTTPException(status_code=400, detail="Empty text.")
+
+    async def stream_audio():
+        has_chunks = False
+        async for chunk in text_to_speech_streaming(body.text.strip()):
+            has_chunks = True
+            yield chunk
+        if not has_chunks:
+            # No streaming available — this shouldn't happen as frontend
+            # checks content-type, but just in case
+            logger.warning("Streaming TTS produced no audio.")
+
+    return StreamingResponse(
+        stream_audio(),
+        media_type="audio/mpeg",
+        headers={
+            "Content-Disposition": "inline; filename=speech.mp3",
+            "Cache-Control": "no-cache",
+            "Transfer-Encoding": "chunked",
+        },
+    )
+
+
 async def _build_report(session) -> TriageReport:
     """Build a TriageReport from the AI's extracted data."""
     data = session.extracted_data or {}

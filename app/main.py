@@ -1,5 +1,5 @@
 """
-Emergency Triage Agent — FastAPI application entry point.
+2020 AI Agent — FastAPI application entry point.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ app = FastAPI(
     title=APP_TITLE,
     version=APP_VERSION,
     description=(
-        "AI-powered emergency triage system for natural disaster scenarios. "
+        "2020 AI Agent — AI-powered emergency triage system for natural disaster scenarios. "
         "Accepts voice calls and text reports, classifies severity, and "
         "generates actionable triage recommendations."
     ),

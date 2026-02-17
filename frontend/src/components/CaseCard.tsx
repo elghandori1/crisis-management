@@ -1,6 +1,6 @@
 import { EmergencyCase, Hospital, severityConfig } from "@/data/api";
 import { estimateAmbulanceEtaMinutes } from "@/lib/geo";
-import { Clock, MapPin, Ambulance, Phone, Users, Building2, User } from "lucide-react";
+import { Clock, MapPin, Ambulance, Phone, Users, Building2, Hash } from "lucide-react";
 
 const ambulanceLabel: Record<string, string> = {
   dispatched: "Dispatched",
@@ -52,12 +52,10 @@ const CaseCard = ({ caseData, hospitals, onClick }: CaseCardProps) => {
       </div>
 
       <div className="space-y-1.5">
-        {caseData.victimName && (
-          <div className="flex items-center gap-1.5 text-xs text-foreground">
-            <User className="w-3 h-3 text-primary flex-shrink-0" />
-            <span className="truncate font-medium">{caseData.victimName}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
+          <Hash className="w-3 h-3 text-primary flex-shrink-0" />
+          <span className="truncate font-mono font-medium">{caseData.id}</span>
+        </div>
         <div className="flex items-center gap-1.5 text-xs text-foreground">
           <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
           <span className="truncate font-medium">{caseData.placeName}</span>

@@ -59,7 +59,7 @@ async def geocode_location(location_text: str) -> Optional[tuple[float, float]]:
                     "accept-language": "en,fr,ar",
                 },
                 headers={
-                    "User-Agent": "EmergencyTriageSystem/1.0",
+                    "User-Agent": "2020AIAgent/1.0",
                 },
             )
             resp.raise_for_status()
@@ -76,7 +76,7 @@ async def geocode_location(location_text: str) -> Optional[tuple[float, float]]:
                         "accept-language": "en,fr,ar",
                     },
                     headers={
-                        "User-Agent": "EmergencyTriageSystem/1.0",
+                        "User-Agent": "2020AIAgent/1.0",
                     },
                 )
                 resp.raise_for_status()

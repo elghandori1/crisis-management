@@ -172,7 +172,7 @@ async def _send_voice_reply(chat_id: int, text: str, bot) -> None:
                     chat_id=chat_id,
                     audio=io.BytesIO(audio),
                     title="AI Response",
-                    performer="Emergency Triage",
+                    performer="2020 AI Agent",
                 )
     except Exception as e:
         logger.debug("Voice reply failed: %s", e)
@@ -221,7 +221,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await store.update(report.report_id, conversation_transcript=session.get_transcript())
 
     await update.message.reply_text(
-        f"🚨 *Emergency Triage System*\n\n{display_text}\n\n"
+        f"🚨 *2020 AI Agent*\n\n{display_text}\n\n"
         f"_Type your messages or send voice notes. "
         f"Send /cancel to cancel, /end to finish early._",
         parse_mode="Markdown",
@@ -332,7 +332,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
         else:
             await update.message.reply_text(
-                "👋 Send /start to begin an emergency triage conversation."
+                "👋 Send /start to begin a 2020 AI Agent triage conversation."
             )
             return
 
@@ -504,7 +504,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 "Or send /start to begin a new emergency report."
             )
             return
-        await update.message.reply_text("👋 Send /start to begin an emergency triage conversation.")
+        await update.message.reply_text("👋 Send /start to begin a 2020 AI Agent triage conversation.")
         return
 
     session = get_session(sid)

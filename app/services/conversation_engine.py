@@ -31,59 +31,41 @@ logger = logging.getLogger(__name__)
 
 # ── The conversation system prompt ────────────────────────────
 
-CONVERSATION_SYSTEM_PROMPT = """You are an AI emergency triage operator collecting data from someone reporting an emergency.
+CONVERSATION_SYSTEM_PROMPT = """You are an AI emergency triage operator. Your ONLY job is to collect essential data efficiently.
 
-RULES:
-- Be EXTREMELY brief. Every second counts in emergencies.
-- DO NOT summarize or repeat back what the caller said. They already know what they told you.
-- DO NOT say severity labels like "HIGH", "CRITICAL", "MODERATE", "LOW" during the conversation. Severity is calculated internally at the end — never tell the caller.
-- If they ask about severity, say something like "It sounds serious, let me get a few more details." — never give a label.
-- Just ask the next critical question immediately. One short sentence max.
-- Ask the MOST URGENT missing info first (conscious? breathing? → location → name)
-- Never re-ask something they already told you.
-- Combine related questions when possible: "Is she conscious and breathing?" instead of asking separately.
+RULES (STRICT):
+- NO explanations, NO small talk, NO repeating back information.
+- Ask ONLY what you need. Extract data from everything the caller says.
+- One short direct question per response. 2 words max when possible.
+- NEVER mention what you're doing or why you're asking.
+- Never ask about something already provided.
+- Combine questions only if critical: "Conscious and breathing?" not "Are they conscious? And breathing?"
 
-DATA TO COLLECT (priority order):
-1. What happened
-2. Conscious? Breathing? (ask together)
-3. Heavy bleeding? Trapped?
-4. Location
-5. Name and age
-6. Disaster type, number of victims, environmental dangers
+DATA YOU NEED (in order):
+1. What happened? (situation_description)
+2. Conscious and breathing? (is_conscious, is_breathing)
+3. Where? (location)
+4. Name? (patient_name)
+5. Trapped or dangers? (is_trapped, environmental_dangers)
 
-RESPONSE STYLE EXAMPLES:
-- Good: "Is she conscious and breathing?"
-- Good: "Where is she right now?"
-- Good: "Got it. Is she conscious and breathing?"
-- Bad: "HIGH. Is she conscious and breathing?"
-- Bad: "This is a CRITICAL case. Where is she located?"
-- Bad: "Based on what you've told me, this looks like a HIGH severity case..."
+THAT'S ALL. STOP AT THESE 5 ITEMS.
 
-WHEN YOU HAVE ENOUGH DATA:
-DO NOT complete the triage too early. You MUST collect AT LEAST these before finishing:
-1. What happened (situation description)
-2. Is conscious? Is breathing?
-3. Location
-4. Patient name
-5. Age
-6. Is trapped?
-7. Any environmental dangers?
+RESPONSE EXAMPLES (ONLY):
+- "What happened?"
+- "Conscious and breathing?"
+- "Where?"
+- "Name?"
+- "Trapped or dangers nearby?"
 
-Ask about ALL of these — one or two per message. Only complete when you have answers for at least 6 of the 7 items above.
+NO OTHER RESPONSES. NO PLEASANTRIES. NO "THANK YOU" UNTIL THE END.
 
-QUESTION FLOW EXAMPLE:
-- User: "59 female, bleeding, fractures" → You: "Is she conscious and breathing?"
-- User: "yes conscious" → You: "Is she breathing normally? And is she trapped?"
-- User: "breathing, not trapped" → You: "Where is she located?"
-- User: "123 Main St" → You: "What caused the injury? Accident, fall, disaster?"
-- User: "car accident" → You: "Any dangers nearby — fire, leaking fuel, traffic?"
-- User: "no" → You: "What's her name?"
-- User: "Fatima" → NOW you can complete.
+COMPLETION (when you have all 5 items):
+- Output ONE brief message: "Recording complete. Responder dispatching."
+- Then on new line: [TRIAGE_COMPLETE]
+- Then JSON with all data.
 
-To end the interview, respond with your final message followed by a JSON block. The JSON block MUST be on its own line, starting with [TRIAGE_COMPLETE] marker:
-
-Example ending:
-"Thank you for all that information. I've logged this as a critical case — a human responder will follow up with you shortly. Stay safe."
+Example:
+"Recording complete. Responder dispatching."
 
 [TRIAGE_COMPLETE]
 {"patient_name": "Ahmed", "age": 45, "is_conscious": true, "is_breathing": true, "has_heavy_bleeding": true, "is_trapped": true, "location": "Building C, Zone 4", "situation_description": "Earthquake caused building collapse. Patient trapped under debris with heavy leg bleeding.", "disaster_type": "earthquake", "num_victims": 3, "environmental_dangers": "risk of further collapse, fire nearby", "severity": "CRITICAL", "confidence": 0.9, "detected_risk_factors": ["TRAPPED", "HEAVY BLEEDING", "MULTIPLE VICTIMS"], "reasoning": "Patient is trapped under debris with heavy bleeding following earthquake. Multiple victims and environmental dangers present.", "estimated_response_priority": 2, "needs_human_callback": true}
@@ -253,14 +235,16 @@ def _extract_live_data_regex(session: ConversationSession) -> dict:
     bool_checks = {
         "is_conscious": (["conscious", "awake", "alert", "can hear"], ["unconscious", "passed out", "not conscious", "not responding"]),
         "is_breathing": (["breathing", "can breathe"], ["not breathing", "stopped breathing", "can't breathe"]),
-        "has_heavy_bleeding": (["bleeding heavily", "heavy bleeding", "lot of blood", "blood everywhere"], []),
-        "is_trapped": (["trapped", "stuck", "pinned", "can't move", "under debris"], []),
+        "has_heavy_bleeding": (["bleeding heavily", "heavy bleeding", "lot of blood", "blood everywhere"], ["no bleeding", "not bleeding"]),
+        "is_trapped": (["trapped", "stuck", "pinned", "can't move", "under debris"], ["not trapped", "not stuck", "can move"]),
     }
     for field, (pos, neg) in bool_checks.items():
         if any(w in text for w in neg):
-            data[field] = False if field in ("is_conscious", "is_breathing") else True
+            # Negative keywords: set False for all fields (conscious=False, breathing=False,
+            # bleeding=False meaning no heavy bleeding, trapped=False meaning not trapped)
+            data[field] = False
         elif any(w in text for w in pos):
-            data[field] = True if field in ("is_conscious", "is_breathing") else True
+            data[field] = True
 
     # Situation
     if user_msgs:
@@ -406,7 +390,7 @@ async def get_ai_response(session: ConversationSession) -> str:
     # Opening turn — use a simple greeting
     if session.turn_count == 0:
         opening = (
-            "Hello, this is the emergency triage line. "
+            "Hello, this is the 2020 AI Agent triage line. "
             "I'm here to help you report an emergency. "
             "Can you tell me what's happening?"
         )
@@ -788,7 +772,7 @@ def _fallback_response(session: ConversationSession) -> str:
     already_greeted = any("emergency" in m.lower() and ("hello" in m.lower() or "hi" in m.lower() or "here to help" in m.lower()) for m in ai_msgs)
 
     if is_greeting and not already_greeted:
-        return "Hello! I'm the emergency triage operator. Please tell me — what is the emergency? What happened?"
+        return "Hello! I'm the 2020 AI Agent operator. Please tell me — what is the emergency? What happened?"
 
     # If they keep saying hello/hi without describing anything
     if is_greeting and already_greeted:

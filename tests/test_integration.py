@@ -1,5 +1,5 @@
 """
-Full integration test suite for the Emergency Triage Agent.
+Full integration test suite for the 2020 AI Agent.
 
 Run with:  python tests/test_integration.py
 Requires the server to be running on http://localhost:8000
@@ -39,7 +39,7 @@ def main() -> None:
     report("GET /api/health returns 200", r.status_code == 200)
     data = r.json()
     report("Response has status=ok", data.get("status") == "ok")
-    report("Response has service name", "Emergency Triage" in data.get("service", ""))
+    report("Response has service name", "2020 AI Agent" in data.get("service", ""))
     report("Response has timestamp", len(data.get("timestamp", "")) > 10)
     report("Response has version", data.get("version") == "1.0.0")
 

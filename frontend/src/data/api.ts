@@ -51,6 +51,9 @@ export interface Hospital {
   longitude: number;
   emergencyBeds: { available: number; total: number };
   icuBeds: { available: number; total: number };
+  pediatricsBeds: { available: number; total: number };
+  labAvailable: number;
+  pharmacyAvailable: number;
   traumaUnit: boolean;
   cardiology: boolean;
   pediatrics: boolean;
@@ -61,7 +64,78 @@ export interface Hospital {
   burnUnit: boolean;
   orthopedics: boolean;
   ophthalmology: boolean;
-  occupancyPercentage: number;
+}
+
+/** Emergency occupied level based on number of available emergency beds (no percentages). */
+export type EmergencyOccupiedLevel = "critical" | "high" | "moderate" | "low";
+
+/** Derive emergency level from available emergency beds: 0–1 = critical, 2–3 = high, 4–6 = moderate, 7+ = low. */
+export function getEmergencyOccupiedLevel(h: Hospital): EmergencyOccupiedLevel {
+  const n = h.emergencyBeds.available;
+  if (n <= 1) return "critical";
+  if (n <= 3) return "high";
+  if (n <= 6) return "moderate";
+  return "low";
+}
+
+/** Total available capacity (emergency + ICU + pediatrics + lab + pharmacy). Higher = more prepared. */
+export function getTotalAvailableBeds(h: Hospital): number {
+  return (
+    h.emergencyBeds.available +
+    h.icuBeds.available +
+    h.pediatricsBeds.available +
+    h.labAvailable +
+    h.pharmacyAvailable
+  );
+}
+
+/** Max slots for lab/pharmacy when we only have "available" (used to compute occupancy). */
+const LAB_PHARMACY_MAX = 10;
+
+/**
+ * Occupancy percentage (0–100) from emergency, ICU, pediatrics, lab, pharmacy.
+ * Big available numbers → low occupancy; small available → high occupancy.
+ * Weighted: emergency 35%, ICU 25%, pediatrics 20%, lab 10%, pharmacy 10%.
+ */
+export function computeOccupancyPercentage(h: Hospital): number {
+  const emergencyUsed =
+    h.emergencyBeds.total > 0
+      ? (h.emergencyBeds.total - h.emergencyBeds.available) / h.emergencyBeds.total
+      : 0;
+  const icuUsed =
+    h.icuBeds.total > 0 ? (h.icuBeds.total - h.icuBeds.available) / h.icuBeds.total : 0;
+  const pediatricsUsed =
+    h.pediatricsBeds.total > 0
+      ? (h.pediatricsBeds.total - h.pediatricsBeds.available) / h.pediatricsBeds.total
+      : 0;
+  const labUsed = Math.min(1, 1 - h.labAvailable / LAB_PHARMACY_MAX);
+  const pharmacyUsed = Math.min(1, 1 - h.pharmacyAvailable / LAB_PHARMACY_MAX);
+
+  const weighted =
+    emergencyUsed * 0.35 +
+    icuUsed * 0.25 +
+    pediatricsUsed * 0.2 +
+    labUsed * 0.1 +
+    pharmacyUsed * 0.1;
+  return Math.round(Math.min(100, Math.max(0, weighted * 100)));
+}
+
+/** Occupied level from occupancy percentage: used for bar color and label. */
+export function getOccupiedLevelFromPercentage(occupancyPct: number): EmergencyOccupiedLevel {
+  if (occupancyPct >= 75) return "critical";
+  if (occupancyPct >= 50) return "high";
+  if (occupancyPct >= 25) return "moderate";
+  return "low";
+}
+
+/** Sort hospitals by most prepared first (most available beds), then by name. */
+export function sortHospitalsByPreparedness(hospitalsList: Hospital[]): Hospital[] {
+  return [...hospitalsList].sort((a, b) => {
+    const totalA = getTotalAvailableBeds(a);
+    const totalB = getTotalAvailableBeds(b);
+    if (totalB !== totalA) return totalB - totalA;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 /** Keys of Hospital that represent medical services (boolean). */
@@ -76,6 +150,48 @@ export type HospitalServiceKey =
   | "burnUnit"
   | "orthopedics"
   | "ophthalmology";
+
+/** Fixed order for services (used to decide which become "overloaded" first). */
+const SERVICE_KEYS_ORDER: HospitalServiceKey[] = [
+  "traumaUnit",
+  "cardiology",
+  "pediatrics",
+  "neurosurgery",
+  "radiology",
+  "laboratory",
+  "pharmacy",
+  "burnUnit",
+  "orthopedics",
+  "ophthalmology",
+];
+
+/**
+ * Effective service availability: higher occupancy → more services show as unavailable (red).
+ * - Hospital doesn't offer service → always unavailable (red).
+ * - Hospital offers service: of the N offered, floor(N * occupancyPct / 100) are "overloaded" (red), rest available (green).
+ * So: low occupancy → more green; high occupancy → more red.
+ */
+export function getEffectiveServiceAvailability(
+  h: Hospital,
+  occupancyPct: number
+): Record<HospitalServiceKey, boolean> {
+  const result = {} as Record<HospitalServiceKey, boolean>;
+  const offeredCount = SERVICE_KEYS_ORDER.filter((k) => h[k] === true).length;
+  const numOverloaded = Math.min(offeredCount, Math.floor((offeredCount * occupancyPct) / 100));
+  const isIbnTofail = h.id === "h2" || h.name === "Hôpital Ibn Tofail";
+  let overloadedSoFar = 0;
+  for (const k of SERVICE_KEYS_ORDER) {
+    if (!h[k]) {
+      result[k] = false;
+    } else {
+      const normallyAvailable = overloadedSoFar >= numOverloaded;
+      result[k] =
+        isIbnTofail && (k === "traumaUnit" || k === "cardiology") ? true : normallyAvailable;
+      overloadedSoFar++;
+    }
+  }
+  return result;
+}
 
 /** Infer required hospital services from case symptoms (e.g. Cardiac arrest → cardiology). */
 export function getRequiredServicesForCase(c: EmergencyCase): HospitalServiceKey[] {
@@ -96,13 +212,6 @@ export function getRequiredServicesForCase(c: EmergencyCase): HospitalServiceKey
   if (/\b(burn)\b/.test(text)) out.add("burnUnit");
   if (/\b(eye|ophthal|vision)\b/.test(text)) out.add("ophthalmology");
   return [...out];
-}
-
-/** Occupancy percentage derived from emergency beds (single source of truth). */
-export function computeEmergencyOccupancyPercentage(h: Hospital): number {
-  const { available, total } = h.emergencyBeds;
-  if (total <= 0) return 0;
-  return Math.round(((total - available) / total) * 100);
 }
 
 /** Nearest hospital that has required beds, optional services, and required service keys. */
@@ -133,7 +242,38 @@ function findNearestHospitalWithCapacityAndServices(
     const available = Math.max(0, h.emergencyBeds.available - used);
     if (available >= requiredBeds) return h;
   }
+  // Fallback: nearest with required services (may be full — dispatcher can call to check)
+  for (const h of byDist) {
+    if (hasServices(h)) return h;
+  }
   return byDist[0] ?? null;
+}
+
+/**
+ * Next-best hospital when the assigned one is full: nearest other hospital with
+ * available capacity and required services (for judges: we always prefer one that can take the victim).
+ */
+export function findBackupHospital(
+  lat: number,
+  lng: number,
+  hospitals: Hospital[],
+  excludeHospitalName: string | null,
+  requiredBeds: number,
+  requiredServices: HospitalServiceKey[]
+): Hospital | null {
+  const hasServices = (h: Hospital) =>
+    requiredServices.every((key) => h[key] === true);
+  const byDist = [...hospitals].sort(
+    (a, b) =>
+      haversineKm(lat, lng, a.latitude, a.longitude) -
+      haversineKm(lat, lng, b.latitude, b.longitude)
+  );
+  for (const h of byDist) {
+    if (h.name === excludeHospitalName) continue;
+    const available = h.emergencyBeds.available;
+    if (available >= requiredBeds && hasServices(h)) return h;
+  }
+  return null;
 }
 
 /** Group cases by place and assign each group to nearest hospital with capacity and required services. */
@@ -334,49 +474,49 @@ function mapReportToCase(r: BackendReport): EmergencyCase {
   };
 }
 
-// ── Hospitals (static — real Morocco hospitals) ────────────
+// ── Hospitals (static — real Morocco hospitals). All values are bed/capacity counts; no percentages. ────────────
 export const hospitals: Hospital[] = [
   {
     id: "h1", name: "CHU Mohammed VI", latitude: 31.6340, longitude: -8.0150,
     emergencyBeds: { available: 3, total: 30 }, icuBeds: { available: 1, total: 12 },
+    pediatricsBeds: { available: 2, total: 8 }, labAvailable: 4, pharmacyAvailable: 2,
     traumaUnit: true, cardiology: true, pediatrics: true, neurosurgery: true,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: true, orthopedics: true, ophthalmology: true,
-    occupancyPercentage: 92,
   },
   {
     id: "h2", name: "Hôpital Ibn Tofail", latitude: 31.6280, longitude: -7.9920,
     emergencyBeds: { available: 8, total: 25 }, icuBeds: { available: 3, total: 8 },
+    pediatricsBeds: { available: 4, total: 10 }, labAvailable: 3, pharmacyAvailable: 2,
     traumaUnit: true, cardiology: true, pediatrics: true, neurosurgery: false,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: true, ophthalmology: false,
-    occupancyPercentage: 74,
   },
   {
     id: "h3", name: "Clinique Al Farabi", latitude: 31.6400, longitude: -8.0050,
     emergencyBeds: { available: 5, total: 15 }, icuBeds: { available: 2, total: 5 },
+    pediatricsBeds: { available: 0, total: 0 }, labAvailable: 2, pharmacyAvailable: 1,
     traumaUnit: false, cardiology: true, pediatrics: false, neurosurgery: false,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: false, ophthalmology: true,
-    occupancyPercentage: 65,
   },
   {
     id: "h4", name: "Hôpital Régional Essaouira", latitude: 31.5100, longitude: -9.7600,
     emergencyBeds: { available: 10, total: 20 }, icuBeds: { available: 4, total: 6 },
+    pediatricsBeds: { available: 6, total: 12 }, labAvailable: 5, pharmacyAvailable: 3,
     traumaUnit: true, cardiology: false, pediatrics: true, neurosurgery: false,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: true, ophthalmology: false,
-    occupancyPercentage: 48,
   },
   {
     id: "h5", name: "Hôpital Provincial Chichaoua", latitude: 31.5340, longitude: -8.7660,
     emergencyBeds: { available: 12, total: 18 }, icuBeds: { available: 5, total: 5 },
+    pediatricsBeds: { available: 5, total: 8 }, labAvailable: 4, pharmacyAvailable: 2,
     traumaUnit: false, cardiology: false, pediatrics: true, neurosurgery: false,
     radiology: false, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: false, ophthalmology: false,
-    occupancyPercentage: 35,
   },
   {
     id: "h6", name: "Clinique Yasmine", latitude: 31.6380, longitude: -7.9950,
     emergencyBeds: { available: 1, total: 10 }, icuBeds: { available: 0, total: 3 },
+    pediatricsBeds: { available: 0, total: 0 }, labAvailable: 0, pharmacyAvailable: 1,
     traumaUnit: false, cardiology: true, pediatrics: false, neurosurgery: false,
     radiology: true, laboratory: false, pharmacy: true, burnUnit: false, orthopedics: false, ophthalmology: false,
-    occupancyPercentage: 96,
   },
 ];
 
@@ -469,14 +609,16 @@ export function subscribeToCases(onNewCase: (c: EmergencyCase) => void): () => v
 
     es.addEventListener("new_report", (evt) => {
       try {
-        const report = JSON.parse(evt.data) as BackendReport;
+        const payload = JSON.parse(evt.data);
+        const report = (payload.report ?? payload) as BackendReport;
         onNewCase(mapReportToCase(report));
       } catch { /* ignore parse errors */ }
     });
 
     es.addEventListener("report_update", (evt) => {
       try {
-        const report = JSON.parse(evt.data) as BackendReport;
+        const payload = JSON.parse(evt.data);
+        const report = (payload.report ?? payload) as BackendReport;
         onNewCase(mapReportToCase(report));
       } catch { /* ignore */ }
     });

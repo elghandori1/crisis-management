@@ -61,6 +61,27 @@ async def download_summary_pdf() -> Response:
     )
 
 
+# ── PDF Export (spec endpoint) — MUST be above /{report_id} to avoid route conflict
+@router.get("/export/pdf")
+async def export_all_reports_pdf(
+    severity: Optional[SeverityLevel] = Query(None),
+) -> Response:
+    """Generate and return a PDF summary of all reports (or filtered subset)."""
+    reports = await store.get_all(severity=severity, limit=500)
+    if not reports:
+        raise HTTPException(status_code=404, detail="No reports available.")
+    stats = {
+        "total_reports": await store.count(),
+        "severity_distribution": await store.severity_counts(),
+    }
+    pdf_bytes = await generate_summary_pdf(reports, stats)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=triage_export.pdf"},
+    )
+
+
 @router.get("", response_model=list[TriageReport])
 async def list_reports(
     severity: Optional[SeverityLevel] = Query(None),
@@ -149,25 +170,3 @@ async def send_message_to_victim_endpoint(report_id: str, body: OperatorMessageR
         raise HTTPException(status_code=400, detail="Could not send message. Victim may not be on Telegram or bot is not running.")
 
     return {"status": "sent", "report_id": report_id}
-
-
-# ── PDF Export (spec endpoint) ─────────────────────────────
-
-@router.get("/export/pdf")
-async def export_all_reports_pdf(
-    severity: Optional[SeverityLevel] = Query(None),
-) -> Response:
-    """Generate and return a PDF summary of all reports (or filtered subset)."""
-    reports = await store.get_all(severity=severity, limit=500)
-    if not reports:
-        raise HTTPException(status_code=404, detail="No reports available.")
-    stats = {
-        "total_reports": await store.count(),
-        "severity_distribution": await store.severity_counts(),
-    }
-    pdf_bytes = await generate_summary_pdf(reports, stats)
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=triage_export.pdf"},
-    )

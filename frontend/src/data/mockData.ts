@@ -41,6 +41,9 @@ export interface Hospital {
   longitude: number;
   emergencyBeds: { available: number; total: number };
   icuBeds: { available: number; total: number };
+  pediatricsBeds: { available: number; total: number };
+  labAvailable: number;
+  pharmacyAvailable: number;
   traumaUnit: boolean;
   cardiology: boolean;
   pediatrics: boolean;
@@ -51,7 +54,6 @@ export interface Hospital {
   burnUnit: boolean;
   orthopedics: boolean;
   ophthalmology: boolean;
-  occupancyPercentage: number;
 }
 
 export interface PlaceSeverity {
@@ -162,44 +164,44 @@ export const mockHospitals: Hospital[] = [
   {
     id: "h1", name: "CHU Mohammed VI", latitude: 31.6340, longitude: -8.0150,
     emergencyBeds: { available: 3, total: 30 }, icuBeds: { available: 1, total: 12 },
+    pediatricsBeds: { available: 2, total: 8 }, labAvailable: 4, pharmacyAvailable: 2,
     traumaUnit: true, cardiology: true, pediatrics: true, neurosurgery: true,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: true, orthopedics: true, ophthalmology: true,
-    occupancyPercentage: 92,
   },
   {
     id: "h2", name: "Hôpital Ibn Tofail", latitude: 31.6280, longitude: -7.9920,
     emergencyBeds: { available: 8, total: 25 }, icuBeds: { available: 3, total: 8 },
+    pediatricsBeds: { available: 4, total: 10 }, labAvailable: 3, pharmacyAvailable: 2,
     traumaUnit: true, cardiology: true, pediatrics: true, neurosurgery: false,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: true, ophthalmology: false,
-    occupancyPercentage: 74,
   },
   {
     id: "h3", name: "Clinique Al Farabi", latitude: 31.6400, longitude: -8.0050,
     emergencyBeds: { available: 5, total: 15 }, icuBeds: { available: 2, total: 5 },
+    pediatricsBeds: { available: 0, total: 0 }, labAvailable: 2, pharmacyAvailable: 1,
     traumaUnit: false, cardiology: true, pediatrics: false, neurosurgery: false,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: false, ophthalmology: true,
-    occupancyPercentage: 65,
   },
   {
     id: "h4", name: "Hôpital Régional Essaouira", latitude: 31.5100, longitude: -9.7600,
     emergencyBeds: { available: 10, total: 20 }, icuBeds: { available: 4, total: 6 },
+    pediatricsBeds: { available: 6, total: 12 }, labAvailable: 5, pharmacyAvailable: 3,
     traumaUnit: true, cardiology: false, pediatrics: true, neurosurgery: false,
     radiology: true, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: true, ophthalmology: false,
-    occupancyPercentage: 48,
   },
   {
     id: "h5", name: "Hôpital Provincial Chichaoua", latitude: 31.5340, longitude: -8.7660,
     emergencyBeds: { available: 12, total: 18 }, icuBeds: { available: 5, total: 5 },
+    pediatricsBeds: { available: 5, total: 8 }, labAvailable: 4, pharmacyAvailable: 2,
     traumaUnit: false, cardiology: false, pediatrics: true, neurosurgery: false,
     radiology: false, laboratory: true, pharmacy: true, burnUnit: false, orthopedics: false, ophthalmology: false,
-    occupancyPercentage: 35,
   },
   {
     id: "h6", name: "Clinique Yasmine", latitude: 31.6380, longitude: -7.9950,
     emergencyBeds: { available: 1, total: 10 }, icuBeds: { available: 0, total: 3 },
+    pediatricsBeds: { available: 0, total: 0 }, labAvailable: 0, pharmacyAvailable: 1,
     traumaUnit: false, cardiology: true, pediatrics: false, neurosurgery: false,
     radiology: true, laboratory: false, pharmacy: true, burnUnit: false, orthopedics: false, ophthalmology: false,
-    occupancyPercentage: 96,
   },
 ];
 

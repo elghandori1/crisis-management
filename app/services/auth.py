@@ -50,7 +50,6 @@ _AUTHORIZED_USERS: dict[str, UserAccount] = {}
 
 _SEED_USERS = [
     (DASHBOARD_USERNAME, DASHBOARD_PASSWORD, "System Administrator", "admin", "Emergency HQ"),
-    ("admin", "admin123", "System Administrator", "admin", "Emergency HQ"),
     ("dr.ahmed", "triage2024", "Dr. Ahmed Hassan", "doctor", "Central Hospital"),
     ("nurse.sara", "triage2024", "Sara Al-Rashid", "nurse", "Central Hospital"),
     ("dispatch1", "triage2024", "Dispatch Unit 1", "dispatcher", "Civil Defense"),

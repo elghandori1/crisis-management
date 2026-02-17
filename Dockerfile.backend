@@ -24,9 +24,7 @@ RUN playwright install chromium
 # Copy application code
 COPY app/ ./app/
 COPY main.py .
-
-# Ensure reports dir exists (mounted at runtime via docker-compose)
-RUN mkdir -p ./reports
+COPY reports/ ./reports/
 
 EXPOSE 8000
 

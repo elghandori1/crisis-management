@@ -78,7 +78,7 @@ async def incoming_call(request: Request):
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="Polly.Joanna" language="en-US">
-        Emergency Triage System. I will ask you a few short questions to assess the situation.
+        2020 AI Agent. I will ask you a few short questions to assess the situation.
         Please answer each question clearly.
     </Say>
     <Gather input="speech"

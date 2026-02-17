@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useTheme } from "next-themes";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { EmergencyCase, Hospital, severityConfig, type SeverityLevel } from "@/data/api";
@@ -109,9 +110,14 @@ function createCaseIconBySeverity(severityColor: string) {
   });
 }
 
+const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const LIGHT_GRAY_TILES = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
+
 const MapView = ({ cases, hospitals, onCaseClick }: MapViewProps) => {
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
   /** Fit bounds only once so user zoom/pan is not overwritten on every data update. */
   const initialFitDoneRef = useRef(false);
 
@@ -127,19 +133,32 @@ const MapView = ({ cases, hospitals, onCaseClick }: MapViewProps) => {
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    const isLight = resolvedTheme === "light";
+    const tileLayer = L.tileLayer(isLight ? LIGHT_GRAY_TILES : DARK_TILES, {
       maxZoom: 19,
     }).addTo(map);
-
+    tileLayerRef.current = tileLayer;
     mapRef.current = map;
     initialFitDoneRef.current = false;
 
     return () => {
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
       initialFitDoneRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const currentLayer = tileLayerRef.current;
+    if (!map || !currentLayer || resolvedTheme === undefined) return;
+    const isLight = resolvedTheme === "light";
+    const url = isLight ? LIGHT_GRAY_TILES : DARK_TILES;
+    map.removeLayer(currentLayer);
+    const newLayer = L.tileLayer(url, { maxZoom: 19 }).addTo(map);
+    tileLayerRef.current = newLayer;
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -163,6 +182,10 @@ const MapView = ({ cases, hospitals, onCaseClick }: MapViewProps) => {
 
     // Draw lines from each place group to its assigned hospital (assignment is done in useLiveCases with services + capacity)
     const severityOrder: Record<SeverityLevel, number> = { critical: 0, severe: 1, moderate: 2, mild: 3 };
+
+    const isLightMap = resolvedTheme === "light";
+    const distanceLabelColor = isLightMap ? "#1f2937" : "white";
+    const distanceLabelShadow = isLightMap ? "0 1px 3px rgba(0,0,0,0.2)" : "0 2px 6px rgba(0,0,0,0.4)";
 
     placeGroups.forEach((group) => {
       const assignedHospitalName = group.cases[0]?.assignedHospital ?? null;
@@ -192,14 +215,14 @@ const MapView = ({ cases, hospitals, onCaseClick }: MapViewProps) => {
           className: "distance-label",
           html: `<div style="
             background:${stroke}dd;
-            color:white;
+            color:${distanceLabelColor};
             font-size:10px;
             font-weight:700;
             font-family:Inter,system-ui,sans-serif;
             padding:2px 6px;
             border-radius:4px;
             white-space:nowrap;
-            box-shadow:0 2px 6px rgba(0,0,0,0.4);
+            box-shadow:${distanceLabelShadow};
           ">${distKm.toFixed(1)} km</div>`,
           iconSize: [60, 20],
           iconAnchor: [30, 10],
@@ -256,7 +279,7 @@ const MapView = ({ cases, hospitals, onCaseClick }: MapViewProps) => {
     return () => {
       map.removeLayer(overlayGroup);
     };
-  }, [cases, hospitals, onCaseClick]);
+  }, [cases, hospitals, onCaseClick, resolvedTheme]);
 
   const handleFitBounds = useCallback(() => {
     const map = mapRef.current;
@@ -293,7 +316,7 @@ const MapView = ({ cases, hospitals, onCaseClick }: MapViewProps) => {
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-severity-mild" />Mild</span>
         </div>
         <div className="mt-2 pt-2 border-t border-border text-[10px] text-muted-foreground">
-          ● Victim (by severity) &nbsp;■ Hospital &nbsp;┄ Line (capacity-aware)
+          ● Victim (by severity) &nbsp;■ Hospital &nbsp;┄ Line to recommended hospital (capacity + services)
         </div>
       </div>
     </div>

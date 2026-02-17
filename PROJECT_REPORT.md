@@ -1,12 +1,12 @@
 # PROJECT REPORT
-# AI-Powered Emergency Triage Agent for Natural Disaster Scenarios
+# 2020 AI Agent — AI-Powered Emergency Triage for Natural Disaster Scenarios
 
 ---
 
 ## 1. PROJECT OVERVIEW
 
 ### 1.1 Purpose
-The Emergency Triage Agent is an AI-powered system designed to assist first responders and emergency dispatchers during natural disasters (earthquakes, floods, hurricanes, etc.). It rapidly classifies the severity of incoming emergency reports and generates actionable triage recommendations including first-aid instructions, responder actions, and transport priorities.
+The 2020 AI Agent is an AI-powered system designed to assist first responders and emergency dispatchers during natural disasters (earthquakes, floods, hurricanes, etc.). It rapidly classifies the severity of incoming emergency reports and generates actionable triage recommendations including first-aid instructions, responder actions, and transport priorities.
 
 ### 1.2 Problem Statement
 During natural disasters, emergency services are overwhelmed with reports. Manual triage is slow and error-prone under stress. This system automates severity classification to ensure the most critical patients receive attention first, potentially saving lives through faster response.
@@ -417,4 +417,4 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ---
 
 *Report generated on: February 14, 2026*
-*Emergency Triage Agent v1.0.0*
+*2020 AI Agent v1.0.0*
